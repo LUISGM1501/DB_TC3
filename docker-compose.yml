@@ -169,7 +169,10 @@ services:
       - mongocfg1
       - mongocfg2
       - mongocfg3
-    command: mongos --configdb mongocfg/mongocfg1:27017,mongocfg2:27017,mongocfg3:27017 --port 27017
+    command: mongos --configdb mongocfg/mongocfg1:27017,mongocfg2:27017,mongocfg3:27017 --port 27017 --bind_ip_all
+    environment:
+    - socketTimeoutMS=60000  # 60 segundos
+    - connectTimeoutMS=60000 # 60 segundos
     ports:
       - 27017:27017
     deploy:

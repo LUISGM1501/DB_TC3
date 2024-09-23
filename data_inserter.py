@@ -2,7 +2,7 @@ import json
 from pymongo import MongoClient
 
 # Conectar a MongoDB en el contenedor
-client = MongoClient("mongodb://127.0.0.1:27017/") 
+client = MongoClient('mongodb://172.25.0.14:27017', serverSelectionTimeoutMS=60000, socketTimeoutMS=60000)
 
 # Seleccionar la base de datos y las colecciones
 db = client['myTravelDB']
