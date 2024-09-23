@@ -22,7 +22,9 @@ El objetivo de esta tarea es implementar un clúster de MongoDB con sharding, co
 3. [Generación de Datos](#generación-de-datos)
 4. [Instalación y Configuración](#instalación-y-configuración)
 5. [Scripts y Archivos de Configuración](#scripts-y-archivos-de-configuración)
-6. [Problemas Conocidos y Solución de Errores](#problemas-conocidos-y-solución-de-errores)
+6. [Particionamiento Utilizada](#estrategia-de-particionamiento-utilizada)
+7. [Consistencia entre Réplicas](#manejo-de-la-consistencia-entre-réplicas)
+8. [Problemas Conocidos y Solución de Errores](#problemas-conocidos-y-solución-de-errores)
 
 ---
 
@@ -178,6 +180,27 @@ docker cp usuarios.json mongos:/usuarios.json
 docker exec -it mongos bash
 python3 /data_inserter.py
 ```
+
+---
+
+## Estrategia de Particionamiento Utilizada
+
+En esta implementación de MongoDB con Sharding, la estrategia de particionamiento utilizada se basa en el uso de una clave shard **hashed**. En particular, la colección `usuarios` fue particionada utilizando la clave `username`, la cual se configuró como **hashed**. Este enfoque asegura que los documentos se distribuyan equitativamente entre los shards, aprovechando el balanceo de carga de MongoDB.
+
+El sharding se configuró en tres shards (mongors1, mongors2, y mongors3), cada uno con tres réplicas para garantizar la disponibilidad de los datos y la resistencia ante fallos. El uso de particionamiento hashed distribuye los documentos entre los shards basándose en el hash del valor de la clave shard.
+
+Esta estrategia es beneficiosa en casos donde no hay una clave de particionamiento natural que divida los datos de manera uniforme. El hash asegura una distribución uniforme y evita puntos calientes en los shards, optimizando la escalabilidad horizontal.
+
+## Manejo de la Consistencia entre Réplicas
+
+En cuanto a la consistencia entre réplicas, MongoDB implementa un protocolo de consenso llamado **Replica Set**. En cada shard, existe un conjunto de réplicas que contienen copias de los mismos datos. Este sistema asegura la consistencia mediante un **Primary-Secondary Model**, donde solo una instancia actúa como **Primary** y las otras como **Secondaries**.
+
+- **Primary**: Maneja todas las operaciones de escritura.
+- **Secondaries**: Replican los datos desde el Primary y pueden ser utilizados para operaciones de lectura si la aplicación lo permite.
+
+En esta implementación, las operaciones de escritura se envían al Primary del conjunto de réplicas de cada shard. MongoDB maneja la replicación de los datos a los nodos secundarios para garantizar la consistencia. Si el Primary falla, uno de los Secondaries es elegido automáticamente como nuevo Primary, asegurando alta disponibilidad.
+
+Se ha configurado un sistema de monitoreo en el que los nodos secundaries verifican periódicamente el estado del Primary y aplican los cambios más recientes para mantener la consistencia.
 
 ---
 
