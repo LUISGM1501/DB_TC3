@@ -1,0 +1,193 @@
+version: '3.8'
+services:
+  # Shard 1
+  mongors1n1:
+    build: .
+    container_name: mongors1n1
+    command: mongod --shardsvr --replSet mongors1 --dbpath /data/db --port 27017
+    ports:
+      - 27018:27017
+    volumes:
+      - data1:/data/db
+      - ./init-replica.sh:/init-replica.sh   # Montar el script en el contenedor
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  mongors1n2:
+    build: .
+    container_name: mongors1n2
+    command: mongod --shardsvr --replSet mongors1 --dbpath /data/db --port 27017
+    ports:
+      - 27019:27017
+    volumes:
+      - data2:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  mongors1n3:
+    build: .
+    container_name: mongors1n3
+    command: mongod --shardsvr --replSet mongors1 --dbpath /data/db --port 27017
+    ports:
+      - 27020:27017
+    volumes:
+      - data3:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Shard 2
+  mongors2n1:
+    build: .
+    container_name: mongors2n1
+    command: mongod --shardsvr --replSet mongors2 --dbpath /data/db --port 27017
+    ports:
+      - 27021:27017
+    volumes:
+      - data4:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  mongors2n2:
+    build: .
+    container_name: mongors2n2
+    command: mongod --shardsvr --replSet mongors2 --dbpath /data/db --port 27017
+    ports:
+      - 27022:27017
+    volumes:
+      - data5:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  mongors2n3:
+    build: .
+    container_name: mongors2n3
+    command: mongod --shardsvr --replSet mongors2 --dbpath /data/db --port 27017
+    ports:
+      - 27023:27017
+    volumes:
+      - data6:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Shard 3
+  mongors3n1:
+    build: .
+    container_name: mongors3n1
+    command: mongod --shardsvr --replSet mongors3 --dbpath /data/db --port 27017
+    ports:
+      - 27024:27017
+    volumes:
+      - data7:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  mongors3n2:
+    build: .
+    container_name: mongors3n2
+    command: mongod --shardsvr --replSet mongors3 --dbpath /data/db --port 27017
+    ports:
+      - 27025:27017
+    volumes:
+      - data8:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  mongors3n3:
+    build: .
+    container_name: mongors3n3
+    command: mongod --shardsvr --replSet mongors3 --dbpath /data/db --port 27017
+    ports:
+      - 27026:27017
+    volumes:
+      - data9:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Config Servers
+  mongocfg1:
+    build: .
+    container_name: mongocfg1
+    command: mongod --configsvr --replSet mongocfg --dbpath /data/db --port 27017
+    ports:
+      - 27027:27017
+    volumes:
+      - config1:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  mongocfg2:
+    build: .
+    container_name: mongocfg2
+    command: mongod --configsvr --replSet mongocfg --dbpath /data/db --port 27017
+    ports:
+      - 27028:27017
+    volumes:
+      - config2:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  mongocfg3:
+    build: .
+    container_name: mongocfg3
+    command: mongod --configsvr --replSet mongocfg --dbpath /data/db --port 27017
+    ports:
+      - 27029:27017
+    volumes:
+      - config3:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Router (mongos)
+  mongos:
+    build: .
+    container_name: mongos
+    depends_on:
+      - mongocfg1
+      - mongocfg2
+      - mongocfg3
+    command: mongos --configdb mongocfg/mongocfg1:27017,mongocfg2:27017,mongocfg3:27017 --port 27017
+    ports:
+      - 27017:27017
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+
+volumes:
+  data1:
+  data2:
+  data3:
+  data4:
+  data5:
+  data6:
+  data7:
+  data8:
+  data9:
+  config1:
+  config2:
+  config3:
