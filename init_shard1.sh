@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Configurar el Replica Set para Shard 1
-docker exec -it mongors1n1 mongosh --eval '
+mongosh --eval '
 rs.initiate({
   _id: "mongors1",
   members: [

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configurar el Replica Set para los Config Servers
-docker exec -it mongocfg1 mongosh --eval '
+mongosh --eval '
 rs.initiate({
   _id: "mongocfg",
   configsvr: true,

@@ -19,12 +19,13 @@ El objetivo de esta tarea es implementar un clúster de MongoDB con sharding, co
 ## Tabla de Contenidos:
 1. [Estructura de la Base de Datos](#estructura-de-la-base-de-datos)
 2. [Implementación de Sharding](#implementación-de-sharding)
-3. [Generación de Datos](#generación-de-datos)
-4. [Instalación y Configuración](#instalación-y-configuración)
-5. [Scripts y Archivos de Configuración](#scripts-y-archivos-de-configuración)
-6. [Particionamiento Utilizada](#estrategia-de-particionamiento-utilizada)
-7. [Consistencia entre Réplicas](#manejo-de-la-consistencia-entre-réplicas)
-8. [Problemas Conocidos y Solución de Errores](#problemas-conocidos-y-solución-de-errores)
+3. [Configuración de Sharding ](#4-copiar-scripts-en-los-contenedores-ejecutarlos-y-verificar-conexiones)
+4. [Generación de Datos](#generación-de-datos)
+5. [Instalación y Configuración](#instalación-y-configuración)
+6. [Scripts y Archivos de Configuración](#scripts-y-archivos-de-configuración)
+7. [Particionamiento Utilizada](#estrategia-de-particionamiento-utilizada)
+8. [Consistencia entre Réplicas](#manejo-de-la-consistencia-entre-réplicas)
+9. [Problemas Conocidos y Solución de Errores](#problemas-conocidos-y-solución-de-errores)
 
 ---
 
@@ -90,6 +91,88 @@ El enrutador **mongos** se encargó de distribuir las solicitudes entre los dife
 
 ---
 
+## Copiar Scripts en los Contenedores, Ejecutarlos y Verificar Conexiones
+
+Este apartado explica cómo copiar los scripts en los contenedores, ejecutarlos y verificar que todo esté funcionando correctamente.
+
+### 4.1 Copiar Scripts en los Contenedores
+
+Para copiar los scripts en los contenedores correspondientes, utilizamos el comando `docker cp`. Los scripts necesarios incluyen:
+
+- `init_config_servers.sh`: Inicializa el conjunto de réplicas para los servidores de configuración.
+- `init_shard1.sh`, `init_shard2.sh`, `init_shard3.sh`: Inicializan los conjuntos de réplicas para cada uno de los shards.
+- `add_shards.sh`: Añade los shards al router (mongos).
+- `enable_sharding.sh`: Habilita el sharding en la base de datos.
+
+#### Ejemplo de comandos para copiar scripts:
+```bash
+# Copiar script de inicialización de los servidores de configuración
+docker cp init_config_servers.sh mongocfg1:/init_config_servers.sh
+
+# Copiar script de inicialización de Shard 1
+docker cp init_shard1.sh mongors1n1:/init_shard1.sh
+
+# Copiar script de inicialización de Shard 2
+docker cp init_shard2.sh mongors2n1:/init_shard2.sh
+
+# Copiar script de inicialización de Shard 3
+docker cp init_shard3.sh mongors3n1:/init_shard3.sh
+
+# Copiar script para añadir los shards
+docker cp add_shards.sh mongos:/add_shards.sh
+
+# Copiar script para habilitar el sharding
+docker cp enable_sharding.sh mongos:/enable_sharding.sh
+```
+### 4.2 Ejecutar los Scripts
+  
+Una vez copiados los scripts, es necesario ejecutarlos dentro de los contenedores para configurar los shards y los servidores de configuración.
+
+Comandos para ejecutar los scripts:
+
+```bash
+# Ejecutar script de inicialización de los servidores de configuración
+docker exec -it mongocfg1 bash -c "bash /init_config_servers.sh"
+
+# Ejecutar script de inicialización de Shard 1
+docker exec -it mongors1n1 bash -c "bash /init_shard1.sh"
+
+# Ejecutar script de inicialización de Shard 2
+docker exec -it mongors2n1 bash -c "bash /init_shard2.sh"
+
+# Ejecutar script de inicialización de Shard 3
+docker exec -it mongors3n1 bash -c "bash /init_shard3.sh"
+
+# Ejecutar script para añadir los shards al router
+docker exec -it mongos bash -c "bash /add_shards.sh"
+
+# Ejecutar el script para habilitar el sharding
+docker exec -it mongos bash -c "bash /enable_sharding.sh"
+```
+
+
+### 4.3 Verificar las Conexiones y Estado de los Shards
+Para verificar que los shards y los servidores de configuración se han configurado correctamente, puedes ingresar a los contenedores y consultar el estado de los conjuntos de réplicas.
+
+Comandos para verificar el estado:
+
+```bash
+# Ingresar al contenedor de mongos y verificar los shards
+docker exec -it mongos mongosh --eval "sh.status()"
+
+# Ingresar al contenedor de Shard 1 y verificar su estado
+docker exec -it mongors1n1 mongosh --eval "rs.status()"
+
+# Ingresar al contenedor de Shard 2 y verificar su estado
+docker exec -it mongors2n1 mongosh --eval "rs.status()"
+
+# Ingresar al contenedor de Shard 3 y verificar su estado
+docker exec -it mongors3n1 mongosh --eval "rs.status()"
+
+# Ingresar al contenedor de los servidores de configuración y verificar su estado
+docker exec -it mongocfg1 mongosh --eval "rs.status()"
+```
+
 ## Generación de Datos:
 
 Para simular la base de datos de una red social de viajes, se generaron datos sintéticos utilizando Python y la librería `Faker`. Se crearon 5000 usuarios, 10,000 publicaciones, 50,000 comentarios y 100,000 likes.
@@ -148,8 +231,8 @@ print("Usuarios insertados en la base de datos.")
 1. **Clonar el repositorio**:
 
 ```bash
-git clone <repository-url>
-cd <repository-folder>
+git clone https://github.com/LUISGM1501/DB_TC3
+cd DB_TC3
 ```
 
 2. **Levantar los contenedores de Docker**:
