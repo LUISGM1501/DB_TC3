@@ -264,6 +264,42 @@ docker exec -it mongos bash
 python3 /data_inserter.py
 ```
 
+6. **Verificar la inserción de datos**:
+
+Verificar que los datos están correctamente insertados en tu base de datos MongoDB haciendo algunas consultas básicas.
+
+Primero ingresa al contenedor de mongos:
+```bash
+docker exec -it mongos bash
+```
+Conectar a MongoDB usando mongosh:
+```bash
+mongosh --host 172.18.0.14 --port 27017
+```
+Seleccionar la base de datos:
+```bash
+use myTravelDB
+```
+
+Verificamos los datos:
+```bash
+db.usuarios.find().pretty()
+db.posts.find().pretty()
+db.comentarios.find().pretty()
+db.likes.find().pretty()
+db.follows.find().pretty()
+```
+
+
+7. **Verificar el recuento total de documentos en cada colección**:
+
+```bash
+db.usuarios.countDocuments()
+db.posts.countDocuments()
+db.comentarios.countDocuments()
+db.likes.countDocuments()
+db.follows.countDocuments()
+```
 ---
 
 ## Estrategia de Particionamiento Utilizada
