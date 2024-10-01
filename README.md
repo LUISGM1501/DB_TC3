@@ -247,7 +247,41 @@ docker-compose up -d
 docker ps
 ```
 
-4. **Ejecutar el script de generación de datos**:
+4. **Instalar Python y Pymongo**:
+
+```bash
+docker exec -it mongos bash
+apt-get update && apt-get install -y python3-pip
+pip3 install pymongo
+```
+
+5. **Habilitar el sharding en la base de datos**:
+
+```bash
+sh.enableSharding("myTravelDB")
+```
+
+Para cada colección (usuarios, posts, comentarios, likes, follows), necesitamos crear un índice hashed sobre la clave de particionamiento (_id) y luego habilitar el sharding para esa colección. Ejecuta los siguientes comandos:
+
+```bash
+Copiar código
+db.usuarios.createIndex({ _id: "hashed" });
+sh.shardCollection("myTravelDB.usuarios", { _id: "hashed" });
+
+db.posts.createIndex({ _id: "hashed" });
+sh.shardCollection("myTravelDB.posts", { _id: "hashed" });
+
+db.comentarios.createIndex({ _id: "hashed" });
+sh.shardCollection("myTravelDB.comentarios", { _id: "hashed" });
+
+db.likes.createIndex({ _id: "hashed" });
+sh.shardCollection("myTravelDB.likes", { _id: "hashed" });
+
+db.follows.createIndex({ _id: "hashed" });
+sh.shardCollection("myTravelDB.follows", { _id: "hashed" });
+```
+
+6. **Ejecutar el script de generación de datos**:
 
 ```bash
 docker cp data_generator.py mongos:/data_generator.py
@@ -255,7 +289,9 @@ docker exec -it mongos bash
 python3 /data_generator.py
 ```
 
-5. **Insertar los datos en la base de datos**:
+7. **Insertar los datos en la base de datos**:
+
+Este paso puede llegar a durar varios minutoss.
 
 ```bash
 docker cp data_inserter.py mongos:/data_inserter.py
@@ -264,7 +300,7 @@ docker exec -it mongos bash
 python3 /data_inserter.py
 ```
 
-6. **Verificar la inserción de datos**:
+8. **Verificar la inserción de datos**:
 
 Verificar que los datos están correctamente insertados en tu base de datos MongoDB haciendo algunas consultas básicas.
 
@@ -291,7 +327,7 @@ db.follows.find().pretty()
 ```
 
 
-7. **Verificar el recuento total de documentos en cada colección**:
+9. **Verificar el recuento total de documentos en cada colección**:
 
 ```bash
 db.usuarios.countDocuments()
@@ -300,15 +336,47 @@ db.comentarios.countDocuments()
 db.likes.countDocuments()
 db.follows.countDocuments()
 ```
+
+10. **Verificar el estado de la base de datos particionada**:
+
+Entra al contenedor donde corre mongos
+```bash
+docker exec -it mongos bash
+```
+Abrir el shell de MongoDB (mongosh):
+```bash
+mongosh --host 127.0.0.1 --port 27017
+```
+
+Seleccionar la base de datos:
+```bash
+use myTravelDB
+```
+
+Verifica la distribución de los datos en los shards utilizando el comando getShardDistribution() para cada colección:
+
+```bash
+db.usuarios.getShardDistribution();
+db.posts.getShardDistribution();
+db.comentarios.getShardDistribution();
+db.likes.getShardDistribution();
+db.follows.getShardDistribution();
+```
+
+
 ---
 
 ## Estrategia de Particionamiento Utilizada
 
-En esta implementación de MongoDB con Sharding, la estrategia de particionamiento utilizada se basa en el uso de una clave shard **hashed**. En particular, la colección `usuarios` fue particionada utilizando la clave `username`, la cual se configuró como **hashed**. Este enfoque asegura que los documentos se distribuyan equitativamente entre los shards, aprovechando el balanceo de carga de MongoDB.
+En esta implementación de MongoDB con Sharding, la estrategia de particionamiento utilizada se basa en el uso de una clave shard **hashed**. En particular, todas las colecciones, incluyendo `usuarios`, fueron particionadas utilizando la clave `_id`, la cual se configuró como **hashed**. Este enfoque asegura que los documentos se distribuyan equitativamente entre los shards, aprovechando el balanceo de carga de MongoDB.
 
-El sharding se configuró en tres shards (mongors1, mongors2, y mongors3), cada uno con tres réplicas para garantizar la disponibilidad de los datos y la resistencia ante fallos. El uso de particionamiento hashed distribuye los documentos entre los shards basándose en el hash del valor de la clave shard.
+El sharding se configuró en tres shards (mongors1, mongors2, y mongors3), cada uno con tres réplicas para garantizar la disponibilidad de los datos y la resistencia ante fallos. El uso de particionamiento hashed distribuye los documentos entre los shards basándose en el hash del valor de la clave shard `_id`.
 
-Esta estrategia es beneficiosa en casos donde no hay una clave de particionamiento natural que divida los datos de manera uniforme. El hash asegura una distribución uniforme y evita puntos calientes en los shards, optimizando la escalabilidad horizontal.
+Esta estrategia es beneficiosa por varias razones:
+1. Proporciona una distribución uniforme de los datos, ya que el hash de `_id` tiende a distribuir los documentos de manera equitativa.
+2. Evita la necesidad de elegir una clave de particionamiento específica para cada colección, simplificando la configuración.
+3. Previene puntos calientes en los shards, ya que los valores hash no siguen ningún patrón predecible.
+4. Optimiza la escalabilidad horizontal al permitir que las operaciones de lectura y escritura se distribuyan uniformemente entre los shards.
 
 ## Manejo de la Consistencia entre Réplicas
 
